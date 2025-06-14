@@ -1,7 +1,7 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "agent": "./src/flow.js:graph"
+    "agent": "./src/flow.ts:graph"
   },
   "env": ".env"
 }

@@ -191,7 +191,7 @@ const agentFinalState = await agent.invoke(
 );
 
 
-let answer = agentFinalState.messages[agentFinalState.messages.length - 1].content;
+let answer = agentFinalState.messages[agentFinalState.messages.length - 1].content as string;
 let answerString = answer
 answer = JSON.parse(answer)
 

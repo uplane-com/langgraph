@@ -10,10 +10,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const stateSchema = Annotation.Root({
-    companyId: Annotation,
-    companyName: Annotation,
-    exampleAds: Annotation,
-    structuredAd: Annotation,
+    companyId: Annotation<number>,
+    companyName: Annotation<string>,
+    exampleAds: Annotation<string[]>,
+    structuredAd: Annotation<object>,
 });
 
 async function setupNode(state) {
@@ -201,7 +201,9 @@ async function generateStructuredAdAgentNode(state) {
         { configurable: { thread_id: "42" } },
       );
       
-      let answer = JSON.parse(endState.messages[endState.messages.length - 1].content);
+      const structuredOutput = endState.messages[endState.messages.length - 1];
+      const structuredOutputMessage = structuredOutput.content;
+      let answer = JSON.parse(structuredOutputMessage as string);
       return {structuredAd : answer}
 }
 
