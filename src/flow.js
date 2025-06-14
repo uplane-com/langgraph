@@ -211,7 +211,7 @@ async function uploadAdNode(state) {
     uploadAdToAPI(state.structuredAd, image_base64)
 }
 
-const graph = new StateGraph({
+export const graph = new StateGraph({
     stateSchema: stateSchema
 })
     .addNode("setupNode", setupNode)
@@ -223,8 +223,11 @@ const graph = new StateGraph({
     .addEdge("uploadAdNode", "__end__")
     .compile();
 
+
+/*    
 const result = await graph.invoke({
     companyId: 18
 });
 
 console.log(result);
+*/
