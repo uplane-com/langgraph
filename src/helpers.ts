@@ -6,8 +6,8 @@ import fs from "fs";
 dotenv.config();
 
 // Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl:string = process.env.SUPABASE_URL as string;
+const supabaseKey:string = process.env.SUPABASE_ANON_KEY as string;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function getCompanyName(companyId) {
@@ -71,14 +71,14 @@ export async function getTopAdsByReach(companyId) {
     const shuffled = [...data].sort(() => 0.5 - Math.random());
     const randomAds = shuffled.slice(0, Math.min(20, data.length));
     
-    const descriptions = [];
+    const descriptions: string[] = [];
     
     randomAds.forEach((ad, index) => {
-      
       if (ad.facebook_ad_image_links && ad.facebook_ad_image_links.length > 0) {
         ad.facebook_ad_image_links.forEach((link, imgIndex) => {
-          if (link.ad_images?.detailed_description) {
-            descriptions.push(link.ad_images.detailed_description);
+          const adImage = link.ad_images as any;
+          if (adImage?.detailed_description) {
+            descriptions.push(adImage.detailed_description);
           }
         });
       }
@@ -105,13 +105,18 @@ export async function generateImage(prompt) {
   });
 
   // Save the image to a file
+  if (!result.data || result.data.length === 0) {
+    throw new Error('No image data received from OpenAI');
+  }
+  
   const image_base64 = result.data[0].b64_json;
   sendImageToSlack(image_base64);
-  return JSON.stringify(image_base64)
+  console.log("returning generated image")
+  return image_base64; // Remove JSON.stringify() here
 }
 
 // Updated function to send base64 image to Slack using modern API
-async function sendImageToSlack(base64Image, message = 'Here is your generated image:', channelId = null) {
+export async function sendImageToSlack(base64Image, message = 'Here is your generated image:', channelId = null) {
   try {
     const slackToken = process.env.SLACK_BOT_TOKEN;
     const defaultChannel = process.env.SLACK_CHANNEL_ID || channelId;
@@ -200,7 +205,11 @@ async function sendImageToSlack(base64Image, message = 'Here is your generated i
   }
 }
 
-export async function uploadAdToAPI(structuredAnswer, image_base64) {
+export async function uploadAdToAPI(mergedAdData: any, image_base64: string) {
+  const image = ("data:image/png;base64," + image_base64)
+  console.log("Image Format:")
+  console.log(image.slice(0, 50))
+  console.log(image.slice(-50))
   const requestBody = {
     "final": true,
     "ad": {
@@ -213,13 +222,14 @@ export async function uploadAdToAPI(structuredAnswer, image_base64) {
       "tags": ["ai-generated"],
       "ctaFooter": "Learn More"
     },
-    "width": structuredAnswer.width, // From Image-Description-Generator JSON
-    "height": structuredAnswer.height, // From Image-Description-Generator JSON
-    "sourceImage": "data:image/png;base64," + image_base64, // Left empty as requested
-    "layers": structuredAnswer.layers // From Image-Description-Generator JSON
+    "width": mergedAdData.width, // Always 1024
+    "height": mergedAdData.height, // Always 1024
+    "sourceImage": image, // Clean the base64 string
+    "layers": mergedAdData.layers // From the separated layers data
   };
 
-  
+  console.log("sending upload")
+
   try {
     const response = await fetch('https://functions.uplane.com/api/image-gen', {
       method: 'POST',
