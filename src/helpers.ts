@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import OpenAI from "openai";
-import fs from "fs";
+import axios from 'axios';
 
 dotenv.config();
 
@@ -100,7 +100,7 @@ export async function generateImage(prompt: string) {
       prompt,
       n: 1, // Number of images (1-10)
       quality: "auto", // "high", "medium", "low", or "auto"
-      size: "1024x1024",
+      size: "1024x1024"
   });
 
   // Save the image to a file
@@ -111,7 +111,7 @@ export async function generateImage(prompt: string) {
   const image_base64 = result.data[0].b64_json;
   sendImageToSlack(image_base64);
   console.log("returning generated image")
-  return image_base64; // Remove JSON.stringify() here
+  return image_base64; 
 }
 
 // Updated function to send base64 image to Slack using modern API
@@ -146,32 +146,22 @@ export async function sendImageToSlack(base64Image, message = 'Here is your gene
     formData.append('filename', filename);
     formData.append('length', filesize.toString());
     
-    const uploadUrlResponse = await fetch('https://slack.com/api/files.getUploadURLExternal', {
-      method: 'POST',
+    const uploadUrlResponse = await axios.post('https://slack.com/api/files.getUploadURLExternal', formData, {
       headers: {
         'Authorization': `Bearer ${slackToken}`,
         'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: formData
+      }
     });
     
-    const uploadUrlResult = await uploadUrlResponse.json();
+    const uploadUrlResult = uploadUrlResponse.data;
     
     if (!uploadUrlResult.ok) {
       throw new Error(`Slack API error getting upload URL: ${uploadUrlResult.error}`);
     }
     
     // Step 2: Upload file to the URL (raw bytes)
-    const uploadResponse = await fetch(uploadUrlResult.upload_url, {
-      method: 'POST',
-      body: imageBuffer
-    });
-    
-    
-    if (!uploadResponse.ok) {
-      throw new Error(`File upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
-    }
-    
+    await axios.post(uploadUrlResult.upload_url, imageBuffer);
+        
     // Step 3: Complete the upload - Use form-encoded data
     const completeFormData = new URLSearchParams();
     console.log("---------------start 3---------------")
@@ -183,16 +173,14 @@ export async function sendImageToSlack(base64Image, message = 'Here is your gene
     completeFormData.append('channel_id', defaultChannel);
     completeFormData.append('initial_comment', message);
     
-    const completeResponse = await fetch('https://slack.com/api/files.completeUploadExternal', {
-      method: 'POST',
+    const completeResponse = await axios.post('https://slack.com/api/files.completeUploadExternal', completeFormData, {
       headers: {
         'Authorization': `Bearer ${slackToken}`,
         'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: completeFormData
+      }
     });
     
-    const completeResult = await completeResponse.json();
+    const completeResult = completeResponse.data;
     
     if (!completeResult.ok) {
       throw new Error(`Slack API error completing upload: ${completeResult.error}`);
@@ -200,59 +188,56 @@ export async function sendImageToSlack(base64Image, message = 'Here is your gene
   
     return completeResult;
     
-  } catch (error) {
-    console.error('Error sending image to Slack:', error);
+  } catch (error: any) {
+    console.error('Error sending image to Slack:', error.message);
+    if (axios.isAxiosError(error) && error.response) {
+        console.error('Slack API response error data:', error.response.data);
+    }
     throw error;
   }
 }
 
 export async function uploadAdToAPI(mergedAdData: any, image_base64: string) {
   const image = ("data:image/png;base64," + image_base64)
-  //console.log("Image Format:")
-  //console.log(image.slice(0, 50))
-  //console.log(image.slice(-50))
   const requestBody = {
     "final": true,
     "ad": {
-      "name": "test", // Using "test" for Text-Generator values
+      "name": "test", 
       "brandId": "89e227c9-0649-4321-bdaa-373fdf9c9c8b",
       "poolId": "5233bb61-3165-483a-bec6-de02ab86dbc2",
-      "description": "test", // Using "test" for Text-Generator values
-      "websiteFooter": "test", // Using "test" for Text-Generator values
-      "titleFooter": "test", // Using "test" for Text-Generator values
+      "description": "test", 
+      "websiteFooter": "test", 
+      "titleFooter": "test", 
       "tags": ["ai-generated"],
       "ctaFooter": "Learn More"
     },
-    "width": mergedAdData.width, // Always 1024
-    "height": mergedAdData.height, // Always 1024
-    "sourceImage": image, // Clean the base64 string
-    "layers": mergedAdData.layers // From the separated layers data
+    "width": mergedAdData.width, 
+    "height": mergedAdData.height, 
+    "sourceImage": image, 
+    "layers": mergedAdData.layers 
   };
 
   console.log("sending upload")
 
   try {
     console.log("---------------start 2---------------")
-    const response = await fetch('https://functions.uplane.com/api/image-gen', {
-      method: 'POST',
+    const response = await axios.post('https://functions.uplane.com/api/image-gen', requestBody, {
       headers: {
         'Authorization': 'Bearer gdTolLM7Hi6EkexA7K6FQPw6i5yay6cJdZ5oJf0RaldAjjYYGAJx8TwTasOc08eq',
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
+      }
     });
     console.log("---------------end 2---------------")
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.log('Error response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
+    
+    const result = response.data;
     console.log('Upload successful:', result);
     return result;
-  } catch (error) {
-    console.error('Error uploading ad:', error);
+  } catch (error: any) {
+    console.error('Error uploading ad:', error.message);
+    if (axios.isAxiosError(error) && error.response) {
+        console.log('Error response:', error.response.data);
+        throw new Error(`HTTP error! status: ${error.response.status}`);
+    }
     throw error;
   }
 }
@@ -260,7 +245,7 @@ export async function uploadAdToAPI(mergedAdData: any, image_base64: string) {
 export async function returnEditorAd(mergedAdData: any, image_base64: string) {
   const image = ("data:image/png;base64," + image_base64)
   const requestBody = {
-    "final": false, // Set to false to get the image in the response
+    "final": false, 
     "ad": {
       "name": "test", 
       "brandId": "89e227c9-0649-4321-bdaa-373fdf9c9c8b",
@@ -281,24 +266,16 @@ export async function returnEditorAd(mergedAdData: any, image_base64: string) {
 
   try {
     console.log("---------------start 1---------------")
-    const response = await fetch('https://functions.uplane.com/api/image-gen', {
-      method: 'POST',
+    const response = await axios.post('https://functions.uplane.com/api/image-gen', requestBody, {
       headers: {
         'Authorization': 'Bearer gdTolLM7Hi6EkexA7K6FQPw6i5yay6cJdZ5oJf0RaldAjjYYGAJx8TwTasOc08eq',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(requestBody)
+      responseType: 'arraybuffer' 
     });
     console.log("---------------end 1---------------")
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.log('Error response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
 
-    // When "final": false, the API returns the image data directly.
-    // Use Node.js Buffer to convert the response to base64.
-    const imageBuffer = await response.arrayBuffer();
+    const imageBuffer = response.data; 
     const base64String = Buffer.from(imageBuffer).toString('base64');
     
     if (base64String) {
@@ -308,22 +285,30 @@ export async function returnEditorAd(mergedAdData: any, image_base64: string) {
     }
     
     console.log('Editor ad image received and processed.');
-    return base64String; // Return the base64 string of the image
+    return base64String; 
 
-  } catch (error) {
-    console.error('Error fetching editor ad:', error);
+  } catch (error: any) {
+    console.error('Error fetching editor ad:', error.message);
+    if (axios.isAxiosError(error) && error.response) {
+        let errorData = error.response.data;
+        if (errorData instanceof ArrayBuffer) {
+            try {
+                errorData = Buffer.from(errorData).toString('utf-8');
+            } catch (decodingError) {
+                errorData = 'Could not decode ArrayBuffer error response.';
+            }
+        }
+        console.log('Error response:', errorData);
+        throw new Error(`HTTP error! status: ${error.response.status}`);
+    }
     throw error;
   }
 }
 
 export function sanitizeJsonContent(content: string): string {
-  // Sanitize the JSON response
   content = content.trim();
-  // Remove any markdown code block markers
   content = content.replace(/```json\s*|```\s*/g, '');
-  // Replace single quotes with double quotes
   content = content.replace(/'/g, '"');
-  // Add quotes around unquoted property names
   content = content.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
   
   return content;
