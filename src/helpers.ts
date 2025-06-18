@@ -93,9 +93,8 @@ export async function getTopAdsByReach(companyId) {
   }
 }
 
-export async function generateImage(prompt) {
+export async function generateImage(prompt: string) {
   const openai = new OpenAI();
-
   const result = await openai.images.generate({
       model: "gpt-image-1",
       prompt,
@@ -175,10 +174,12 @@ export async function sendImageToSlack(base64Image, message = 'Here is your gene
     
     // Step 3: Complete the upload - Use form-encoded data
     const completeFormData = new URLSearchParams();
+    console.log("---------------start 3---------------")
     completeFormData.append('files', JSON.stringify([{
       id: uploadUrlResult.file_id,
       title: 'Generated Image'
     }]));
+    console.log("---------------end 3---------------")
     completeFormData.append('channel_id', defaultChannel);
     completeFormData.append('initial_comment', message);
     
@@ -207,9 +208,9 @@ export async function sendImageToSlack(base64Image, message = 'Here is your gene
 
 export async function uploadAdToAPI(mergedAdData: any, image_base64: string) {
   const image = ("data:image/png;base64," + image_base64)
-  console.log("Image Format:")
-  console.log(image.slice(0, 50))
-  console.log(image.slice(-50))
+  //console.log("Image Format:")
+  //console.log(image.slice(0, 50))
+  //console.log(image.slice(-50))
   const requestBody = {
     "final": true,
     "ad": {
@@ -231,6 +232,7 @@ export async function uploadAdToAPI(mergedAdData: any, image_base64: string) {
   console.log("sending upload")
 
   try {
+    console.log("---------------start 2---------------")
     const response = await fetch('https://functions.uplane.com/api/image-gen', {
       method: 'POST',
       headers: {
@@ -239,7 +241,7 @@ export async function uploadAdToAPI(mergedAdData: any, image_base64: string) {
       },
       body: JSON.stringify(requestBody)
     });
-
+    console.log("---------------end 2---------------")
     if (!response.ok) {
       const errorText = await response.text();
       console.log('Error response:', errorText);
@@ -253,4 +255,76 @@ export async function uploadAdToAPI(mergedAdData: any, image_base64: string) {
     console.error('Error uploading ad:', error);
     throw error;
   }
+}
+
+export async function returnEditorAd(mergedAdData: any, image_base64: string) {
+  const image = ("data:image/png;base64," + image_base64)
+  const requestBody = {
+    "final": false, // Set to false to get the image in the response
+    "ad": {
+      "name": "test", 
+      "brandId": "89e227c9-0649-4321-bdaa-373fdf9c9c8b",
+      "poolId": "5233bb61-3165-483a-bec6-de02ab86dbc2",
+      "description": "test",
+      "websiteFooter": "test",
+      "titleFooter": "test",
+      "tags": ["ai-generated"],
+      "ctaFooter": "Learn More"
+    },
+    "width": mergedAdData.width, 
+    "height": mergedAdData.height, 
+    "sourceImage": image, 
+    "layers": mergedAdData.layers 
+  };
+
+  console.log("sending request for editor ad")
+
+  try {
+    console.log("---------------start 1---------------")
+    const response = await fetch('https://functions.uplane.com/api/image-gen', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer gdTolLM7Hi6EkexA7K6FQPw6i5yay6cJdZ5oJf0RaldAjjYYGAJx8TwTasOc08eq',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+    console.log("---------------end 1---------------")
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('Error response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    // When "final": false, the API returns the image data directly.
+    // Use Node.js Buffer to convert the response to base64.
+    const imageBuffer = await response.arrayBuffer();
+    const base64String = Buffer.from(imageBuffer).toString('base64');
+    
+    if (base64String) {
+        await sendImageToSlack(base64String, "Editor Ad Image:");
+    } else {
+        console.warn("No image data found in API response to send to Slack.");
+    }
+    
+    console.log('Editor ad image received and processed.');
+    return base64String; // Return the base64 string of the image
+
+  } catch (error) {
+    console.error('Error fetching editor ad:', error);
+    throw error;
+  }
+}
+
+export function sanitizeJsonContent(content: string): string {
+  // Sanitize the JSON response
+  content = content.trim();
+  // Remove any markdown code block markers
+  content = content.replace(/```json\s*|```\s*/g, '');
+  // Replace single quotes with double quotes
+  content = content.replace(/'/g, '"');
+  // Add quotes around unquoted property names
+  content = content.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+  
+  return content;
 }
