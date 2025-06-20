@@ -1,8 +1,7 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "agent": "./src/flow.ts:graph",
-    "reflectionAgent": "./src/reflection.ts:reflectionGraph"
+    "agent": "./src/adGenGraph_v0.ts:adGenGraph"
   },
   "env": ".env"
 }

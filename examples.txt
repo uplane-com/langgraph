@@ -1,0 +1,25 @@
+---Problem 1---
+Problem: Text of the headline >>Wie viel Förderung für Wärmepumpen steht Ihrem Haushalt zu?<< is cut off. The third line >>steht Ihrem Haushalt zu?<< is not visible.
+Action: Changed the height of the text box from 200 to 300.
+
+---Problem 2---
+Problem: The solar sun icon is not shown on the image. There is not icon at the spot where the sun icon should be.
+Action: Changed the fa-code from >>fa-sunny<< to >>fa-sun<<.
+
+---Problem 3---
+Problem: User Group icon is too far on the right side.
+Action: Changed the x coordinate of the icon from 400 to 300.
+
+---Problem 4---
+Problem: There is a random rect shape in the bottom right corner of the image which does not seem to add any value to the ad design and message.
+Action: Deleted the rect shape in the bottom right corner of the image.
+
+---Problem 5---
+Problem: The red text in the sub-headline >>Jetzt Wohnsituation wählen<< is difficult to read on the orange backgground due to a lack of contrast with the background.
+Action: Changed the color code of the text from red (#FF0000) to black (#000000).
+
+---Problem 6---
+Problem: The the CTA text >>Jetzt Wohnsituation wählen<< is too small.
+Action: Changed the fontSize of the text from 30 to 60.
+
+const problemText = "---Problem 1---\nProblem: Text of the headline >>Wie viel Förderung für Wärmepumpen steht Ihrem Haushalt zu?<< is cut off. The third line >>steht Ihrem Haushalt zu?<< is not visible.\nAction: Changed the height of the text box from 200 to 300.\n\n---Problem 2---\nProblem: The solar sun icon is not shown on the image. There is not icon at the spot where the sun icon should be.\nAction: Changed the fa-code from >>fa-sunny<< to >>fa-sun<<.\n\n---Problem 3---\nProblem: User Group icon is too far on the right side.\nAction: Changed the x coordinate of the icon from 400 to 300.\n\n---Problem 4---\nProblem: There is a random rect shape in the bottom right corner of the image which does not seem to add any value to the ad design and message.\nAction: Deleted the rect shape in the bottom right corner of the image.\n\n---Problem 5---\nProblem: The red text in the sub-headline >>Jetzt Wohnsituation wählen<< is difficult to read on the orange backgground due to a lack of contrast with the background.\nAction: Changed the color code of the text from red (#FF0000) to black (#000000).\n\n---Problem 6---\nProblem: The the CTA text >>Jetzt Wohnsituation wählen<< is too small.\nAction: Changed the fontSize of the text from 30 to 60.";

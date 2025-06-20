@@ -2,6 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import OpenAI from "openai";
 import axios from 'axios';
+import * as fs from 'fs';
+
 
 dotenv.config();
 
@@ -93,7 +95,7 @@ export async function getTopAdsByReach(companyId) {
   }
 }
 
-export async function generateImage(prompt: string) {
+export async function generateImage(prompt: string, slackMessage = "Here is your generated image:") {
   const openai = new OpenAI();
   const result = await openai.images.generate({
       model: "gpt-image-1",
@@ -109,7 +111,7 @@ export async function generateImage(prompt: string) {
   }
   
   const image_base64 = result.data[0].b64_json;
-  sendImageToSlack(image_base64);
+  sendImageToSlack(image_base64, slackMessage);
   console.log("returning generated image")
   return image_base64; 
 }
@@ -207,7 +209,8 @@ export async function uploadAdToAPI(mergedAdData: any, image_base64: string) {
       "poolId": "5233bb61-3165-483a-bec6-de02ab86dbc2",
       "description": "test", 
       "websiteFooter": "test", 
-      "titleFooter": "test", 
+      "titleFooter": "test",
+      "descriptionFooter": "This is the footer description",
       "tags": ["ai-generated"],
       "ctaFooter": "Learn More"
     },
@@ -242,7 +245,7 @@ export async function uploadAdToAPI(mergedAdData: any, image_base64: string) {
   }
 }
 
-export async function returnEditorAd(mergedAdData: any, image_base64: string) {
+export async function returnEditorAd(mergedAdData: any, image_base64: string, slackMessage = "Here is your editor image:") {
   const image = ("data:image/png;base64," + image_base64)
   const requestBody = {
     "final": false, 
@@ -253,6 +256,7 @@ export async function returnEditorAd(mergedAdData: any, image_base64: string) {
       "description": "test",
       "websiteFooter": "test",
       "titleFooter": "test",
+      "descriptionFooter": "This is the footer description",
       "tags": ["ai-generated"],
       "ctaFooter": "Learn More"
     },
@@ -262,7 +266,7 @@ export async function returnEditorAd(mergedAdData: any, image_base64: string) {
     "layers": mergedAdData.layers 
   };
 
-  console.log("sending request for editor ad")
+  fs.writeFileSync('requestBody.txt', JSON.stringify(requestBody, null, 2));
 
   try {
     console.log("---------------start 1---------------")
@@ -279,7 +283,7 @@ export async function returnEditorAd(mergedAdData: any, image_base64: string) {
     const base64String = Buffer.from(imageBuffer).toString('base64');
     
     if (base64String) {
-        await sendImageToSlack(base64String, "Editor Ad Image:");
+        await sendImageToSlack(base64String, slackMessage);
     } else {
         console.warn("No image data found in API response to send to Slack.");
     }

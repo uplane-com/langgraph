@@ -7,7 +7,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { generateImage, uploadAdToAPI, sendImageToSlack, sanitizeJsonContent,returnEditorAd } from "./helpers"
 import dotenv from 'dotenv';
 import * as prompts from "./prompts"
-import { reflectionGraph } from "./reflection.ts"
+import { reflectionGraph } from "./reflection2.ts"
 
 dotenv.config();
 
@@ -19,6 +19,7 @@ const stateSchema = Annotation.Root({
   companyId: Annotation<number>,
   companyName: Annotation<string>,
   backgroundImageBase64: Annotation<string>,
+  targetImageBase64: Annotation<string>,
   layers: Annotation<object[]>,
 });
 
@@ -122,7 +123,7 @@ async function uploadAdNode(state: typeof stateSchema.State) {
     await uploadAdToAPI(mergedAdData, image_base64 as string);
     //const editorImage = await returnEditorAd(mergedAdData, image_base64 as string);
     //console.log(editorImage.slice(0, 50))
-    return { backgroundImageBase64: image_base64, layers: layersData }
+    return { backgroundImageBase64: image_base64, targetImageBase64: image_base64_FullAd, layers: layersData }
 }
 
 export const graph = new StateGraph({
